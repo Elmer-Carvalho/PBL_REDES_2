@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  server:
+    build: .
+    ports:
+      - "8000:8000"  # API REST
+      - "1883:1883"  # MQTT
+    volumes:
+      - ./app:/app/app
+      - ./data:/app/data
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=sqlite:///./data/server1.db
+      - MQTT_BROKER=localhost
+      - MQTT_PORT=1883
+      - SERVER_ID=server1
+    networks:
+      - carregamento_network
+
+  mqtt-broker:
+    image: eclipse-mosquitto:latest
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - carregamento_network
+
+networks:
+  carregamento_network:
+    driver: bridge 
