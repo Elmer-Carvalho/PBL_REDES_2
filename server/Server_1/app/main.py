@@ -29,14 +29,14 @@ settings = get_settings()
 # Cria a aplicação FastAPI
 app = FastAPI(
     title="Servidor de Carregamento de Veículos Elétricos",
-    description="API para gerenciamento de pontos de carregamento e reservas",
+    description="API para gerenciamento de pontos de carregamento",
     version="1.0.0"
 )
 
 # Configuração do CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, especifique as origens permitidas
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -61,11 +61,11 @@ async def startup_event():
                     ponto = PontoCarregamento(
                         nome=row["nome"],
                         localizacao=f"{row['latitude']},{row['longitude']}",
-                        potencia_maxima=22.0,  # valor fictício padrão
-                        tipo_conector="CCS",  # valor fictício padrão
+                        potencia_maxima=22.0,
+                        tipo_conector="CCS",
                         disponivel=(row["status"].lower() == "ativo"),
                         em_manutencao=False,
-                        preco_kwh=2.5  # valor fictício padrão
+                        preco_kwh=2.5
                     )
                     pontos.append(ponto)
                 db.add_all(pontos)
@@ -106,12 +106,9 @@ async def verificar_status():
         "timestamp": datetime.now().isoformat()
     }
 
-# Importa e inclui os routers
-from .routers import carros, pontos, reservas
-
-app.include_router(carros.router, prefix="/carros", tags=["carros"])
+# Importa e inclui apenas o router de pontos
+from .routers import pontos
 app.include_router(pontos.router, prefix="/pontos", tags=["pontos"])
-app.include_router(reservas.router, prefix="/reservas", tags=["reservas"])
 
 if __name__ == "__main__":
     uvicorn.run(

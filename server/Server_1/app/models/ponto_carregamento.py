@@ -18,7 +18,6 @@ class PontoCarregamento(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relacionamentos
-    reservas = relationship("Reserva", back_populates="ponto_carregamento")
     carregamentos_ativos = relationship("CarregamentoAtivo", back_populates="ponto_carregamento")
 
 class CarregamentoAtivo(Base):
