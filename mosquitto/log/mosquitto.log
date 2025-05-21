@@ -4486,3 +4486,204 @@
 1747801887: Client server_server1 disconnected.
 1747801889: mosquitto version 2.0.21 terminating
 1747801889: Saving in-memory database to /mosquitto/data//mosquitto.db.
+1747850561: mosquitto version 2.0.21 starting
+1747850561: Config loaded from /mosquitto/config/mosquitto.conf.
+1747850561: Opening ipv4 listen socket on port 1883.
+1747850561: Opening ipv6 listen socket on port 1883.
+1747850561: mosquitto version 2.0.21 running
+1747850565: New connection from 172.18.0.4:40076 on port 1883.
+1747850565: New client connected from 172.18.0.4:40076 as cliente2 (p5, c1, k60).
+1747850565: No will message specified.
+1747850565: Sending CONNACK to cliente2 (0, 0)
+1747850565: Received SUBSCRIBE from cliente2
+1747850565: 	client/cliente2/postos/response (QoS 1)
+1747850565: cliente2 1 client/cliente2/postos/response
+1747850565: Sending SUBACK to cliente2
+1747850565: New connection from 172.18.0.6:58904 on port 1883.
+1747850565: New client connected from 172.18.0.6:58904 as cliente1 (p5, c1, k60).
+1747850565: No will message specified.
+1747850565: Sending CONNACK to cliente1 (0, 0)
+1747850565: Received SUBSCRIBE from cliente1
+1747850565: 	client/cliente1/postos/response (QoS 1)
+1747850565: cliente1 1 client/cliente1/postos/response
+1747850565: Sending SUBACK to cliente1
+1747850568: New connection from 172.18.0.5:44152 on port 1883.
+1747850568: New client connected from 172.18.0.5:44152 as server_server1 (p5, c1, k60).
+1747850568: No will message specified.
+1747850568: Sending CONNACK to server_server1 (0, 0)
+1747850568: Received SUBSCRIBE from server_server1
+1747850568: 	carros/+/status (QoS 0)
+1747850568: server_server1 0 carros/+/status
+1747850568: Sending SUBACK to server_server1
+1747850568: Received SUBSCRIBE from server_server1
+1747850568: 	carros/+/bateria (QoS 0)
+1747850568: server_server1 0 carros/+/bateria
+1747850568: Sending SUBACK to server_server1
+1747850568: Received SUBSCRIBE from server_server1
+1747850568: 	pontos/+/disponibilidade (QoS 0)
+1747850568: server_server1 0 pontos/+/disponibilidade
+1747850568: Sending SUBACK to server_server1
+1747850568: Received SUBSCRIBE from server_server1
+1747850568: 	reservas/+/status (QoS 0)
+1747850568: server_server1 0 reservas/+/status
+1747850568: Sending SUBACK to server_server1
+1747850568: Received SUBSCRIBE from server_server1
+1747850568: 	server/postos/request (QoS 0)
+1747850568: server_server1 0 server/postos/request
+1747850568: Sending SUBACK to server_server1
+1747850568: New connection from 172.18.0.3:42546 on port 1883.
+1747850568: New client connected from 172.18.0.3:42546 as server_server2 (p5, c1, k60).
+1747850568: No will message specified.
+1747850568: Sending CONNACK to server_server2 (0, 0)
+1747850568: Received SUBSCRIBE from server_server2
+1747850568: 	carros/+/status (QoS 0)
+1747850568: server_server2 0 carros/+/status
+1747850568: Sending SUBACK to server_server2
+1747850568: Received SUBSCRIBE from server_server2
+1747850568: 	carros/+/bateria (QoS 0)
+1747850568: server_server2 0 carros/+/bateria
+1747850568: Sending SUBACK to server_server2
+1747850568: Received SUBSCRIBE from server_server2
+1747850568: 	pontos/+/disponibilidade (QoS 0)
+1747850568: server_server2 0 pontos/+/disponibilidade
+1747850568: Sending SUBACK to server_server2
+1747850568: Received SUBSCRIBE from server_server2
+1747850568: 	reservas/+/status (QoS 0)
+1747850568: server_server2 0 reservas/+/status
+1747850568: Sending SUBACK to server_server2
+1747850568: Received SUBSCRIBE from server_server2
+1747850568: 	server/postos/request (QoS 0)
+1747850568: server_server2 0 server/postos/request
+1747850568: Sending SUBACK to server_server2
+1747850625: Received PINGREQ from cliente2
+1747850625: Sending PINGRESP to cliente2
+1747850625: Received PINGREQ from cliente1
+1747850625: Sending PINGRESP to cliente1
+1747850628: Received PINGREQ from server_server1
+1747850628: Sending PINGRESP to server_server1
+1747850628: Received PINGREQ from server_server2
+1747850628: Sending PINGRESP to server_server2
+1747850685: Received PINGREQ from cliente2
+1747850685: Sending PINGRESP to cliente2
+1747850685: Received PINGREQ from cliente1
+1747850685: Sending PINGRESP to cliente1
+1747850688: Received PINGREQ from server_server1
+1747850688: Sending PINGRESP to server_server1
+1747850688: Received PINGREQ from server_server2
+1747850688: Sending PINGRESP to server_server2
+1747850745: Received PINGREQ from cliente2
+1747850745: Sending PINGRESP to cliente2
+1747850745: Received PINGREQ from cliente1
+1747850745: Sending PINGRESP to cliente1
+1747850748: Received PINGREQ from server_server1
+1747850748: Sending PINGRESP to server_server1
+1747850748: Received PINGREQ from server_server2
+1747850748: Sending PINGRESP to server_server2
+1747850805: Received PINGREQ from cliente2
+1747850805: Sending PINGRESP to cliente2
+1747850805: Received PINGREQ from cliente1
+1747850805: Sending PINGRESP to cliente1
+1747850808: Received PINGREQ from server_server1
+1747850808: Sending PINGRESP to server_server1
+1747850808: Received PINGREQ from server_server2
+1747850808: Sending PINGRESP to server_server2
+1747850865: Received PINGREQ from cliente2
+1747850865: Sending PINGRESP to cliente2
+1747850865: Received PINGREQ from cliente1
+1747850865: Sending PINGRESP to cliente1
+1747850868: Received PINGREQ from server_server1
+1747850868: Sending PINGRESP to server_server1
+1747850868: Received PINGREQ from server_server2
+1747850868: Sending PINGRESP to server_server2
+1747850925: Received PINGREQ from cliente2
+1747850925: Sending PINGRESP to cliente2
+1747850925: Received PINGREQ from cliente1
+1747850925: Sending PINGRESP to cliente1
+1747850928: Received PINGREQ from server_server1
+1747850928: Sending PINGRESP to server_server1
+1747850928: Received PINGREQ from server_server2
+1747850928: Sending PINGRESP to server_server2
+1747850985: Received PINGREQ from cliente2
+1747850985: Sending PINGRESP to cliente2
+1747850985: Received PINGREQ from cliente1
+1747850985: Sending PINGRESP to cliente1
+1747850988: Received PINGREQ from server_server1
+1747850988: Sending PINGRESP to server_server1
+1747850988: Received PINGREQ from server_server2
+1747850988: Sending PINGRESP to server_server2
+1747851045: Received PINGREQ from cliente2
+1747851045: Sending PINGRESP to cliente2
+1747851045: Received PINGREQ from cliente1
+1747851045: Sending PINGRESP to cliente1
+1747851048: Received PINGREQ from server_server1
+1747851048: Sending PINGRESP to server_server1
+1747851048: Received PINGREQ from server_server2
+1747851048: Sending PINGRESP to server_server2
+1747851105: Received PINGREQ from cliente2
+1747851105: Sending PINGRESP to cliente2
+1747851105: Received PINGREQ from cliente1
+1747851105: Sending PINGRESP to cliente1
+1747851108: Received PINGREQ from server_server1
+1747851108: Sending PINGRESP to server_server1
+1747851108: Received PINGREQ from server_server2
+1747851108: Sending PINGRESP to server_server2
+1747851165: Received PINGREQ from cliente2
+1747851165: Sending PINGRESP to cliente2
+1747851165: Received PINGREQ from cliente1
+1747851165: Sending PINGRESP to cliente1
+1747851168: Received PINGREQ from server_server1
+1747851168: Sending PINGRESP to server_server1
+1747851168: Received PINGREQ from server_server2
+1747851168: Sending PINGRESP to server_server2
+1747851225: Received PINGREQ from cliente2
+1747851225: Sending PINGRESP to cliente2
+1747851225: Received PINGREQ from cliente1
+1747851225: Sending PINGRESP to cliente1
+1747851228: Received PINGREQ from server_server1
+1747851228: Sending PINGRESP to server_server1
+1747851228: Received PINGREQ from server_server2
+1747851228: Sending PINGRESP to server_server2
+1747851285: Received PINGREQ from cliente2
+1747851285: Sending PINGRESP to cliente2
+1747851285: Received PINGREQ from cliente1
+1747851285: Sending PINGRESP to cliente1
+1747851288: Received PINGREQ from server_server1
+1747851288: Sending PINGRESP to server_server1
+1747851288: Received PINGREQ from server_server2
+1747851288: Sending PINGRESP to server_server2
+1747851345: Received PINGREQ from cliente2
+1747851345: Sending PINGRESP to cliente2
+1747851345: Received PINGREQ from cliente1
+1747851345: Sending PINGRESP to cliente1
+1747851348: Received PINGREQ from server_server1
+1747851348: Sending PINGRESP to server_server1
+1747851348: Received PINGREQ from server_server2
+1747851348: Sending PINGRESP to server_server2
+1747851405: Received PINGREQ from cliente2
+1747851405: Sending PINGRESP to cliente2
+1747851405: Received PINGREQ from cliente1
+1747851405: Sending PINGRESP to cliente1
+1747851408: Received PINGREQ from server_server1
+1747851408: Sending PINGRESP to server_server1
+1747851408: Received PINGREQ from server_server2
+1747851408: Sending PINGRESP to server_server2
+1747851465: Received PINGREQ from cliente2
+1747851465: Sending PINGRESP to cliente2
+1747851465: Received PINGREQ from cliente1
+1747851465: Sending PINGRESP to cliente1
+1747851468: Received PINGREQ from server_server1
+1747851468: Sending PINGRESP to server_server1
+1747851468: Received PINGREQ from server_server2
+1747851468: Sending PINGRESP to server_server2
+1747851525: Received PINGREQ from cliente2
+1747851525: Sending PINGRESP to cliente2
+1747851525: Received PINGREQ from cliente1
+1747851525: Sending PINGRESP to cliente1
+1747851528: Received PINGREQ from server_server1
+1747851528: Sending PINGRESP to server_server1
+1747851528: Received PINGREQ from server_server2
+1747851528: Sending PINGRESP to server_server2
+1747851585: Received PINGREQ from cliente2
+1747851585: Sending PINGRESP to cliente2
+1747851585: Received PINGREQ from cliente1
+1747851585: Sending PINGRESP to cliente1
