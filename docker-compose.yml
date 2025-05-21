@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  broker:
+    image: eclipse-mosquitto:latest
+    container_name: broker
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - carregamento_network
+
+  server_1:
+    build: ./server/Server_1
+    container_name: server_1
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=sqlite:///./data/server1.db
+      - MQTT_BROKER=broker
+      - MQTT_PORT=1883
+      - SERVER_ID=server1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server/Server_1/app:/app/app
+      - ./server/Server_1/data:/app/data
+    depends_on:
+      - broker
+    networks:
+      - carregamento_network
+
+  server_2:
+    build: ./server/Server_2
+    container_name: server_2
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=sqlite:///./data/server2.db
+      - MQTT_BROKER=broker
+      - MQTT_PORT=1883
+      - SERVER_ID=server2
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./server/Server_2/app:/app/app
+      - ./server/Server_2/data:/app/data
+    depends_on:
+      - broker
+    networks:
+      - carregamento_network
+
+  client_servidor_1:
+    build: ./client_servidor
+    container_name: client_servidor_1
+    environment:
+      - MQTT_BROKER=broker
+      - MQTT_PORT=1883
+      - MQTT_CLIENT_ID=cliente1
+    ports:
+      - "8001:8001"
+    depends_on:
+      - broker
+    networks:
+      - carregamento_network
+
+  client_servidor_2:
+    build: ./client_servidor
+    container_name: client_servidor_2
+    environment:
+      - MQTT_BROKER=broker
+      - MQTT_PORT=1883
+      - MQTT_CLIENT_ID=cliente2
+    ports:
+      - "8002:8001"
+    depends_on:
+      - broker
+    networks:
+      - carregamento_network
+
+networks:
+  carregamento_network:
+    driver: bridge 

@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+paho-mqtt==1.6.1
+jinja2
+python-dotenv 

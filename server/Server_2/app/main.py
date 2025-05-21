@@ -28,7 +28,7 @@ settings = get_settings()
 
 # Cria a aplicação FastAPI
 app = FastAPI(
-    title="Servidor de Carregamento de Veículos Elétricos",
+    title="Servidor 2 de Carregamento de Veículos Elétricos",
     description="API para gerenciamento de pontos de carregamento e reservas",
     version="1.0.0"
 )
