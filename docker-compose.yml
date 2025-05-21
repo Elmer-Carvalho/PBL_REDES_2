@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   broker:
@@ -52,9 +52,9 @@ services:
     networks:
       - carregamento_network
 
-  client_servidor_1:
-    build: ./client_servidor
-    container_name: client_servidor_1
+  client_1:
+    build: ./client
+    container_name: client_1
     environment:
       - MQTT_BROKER=broker
       - MQTT_PORT=1883
@@ -66,9 +66,9 @@ services:
     networks:
       - carregamento_network
 
-  client_servidor_2:
-    build: ./client_servidor
-    container_name: client_servidor_2
+  client_2:
+    build: ./client
+    container_name: client_2
     environment:
       - MQTT_BROKER=broker
       - MQTT_PORT=1883
@@ -82,4 +82,4 @@ services:
 
 networks:
   carregamento_network:
-    driver: bridge 
+    driver: bridge
