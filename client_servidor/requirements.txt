@@ -1,5 +1,6 @@
-fastapi
-uvicorn
-paho-mqtt==1.6.1
-jinja2
-python-dotenv 
+fastapi==0.104.1
+uvicorn==0.24.0
+requests==2.31.0
+python-dotenv==1.0.0
+gmqtt==0.6.13
+asyncio==3.4.3 

@@ -45,42 +45,47 @@ app.add_middleware(
 # Eventos de inicialização e encerramento
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Iniciando o servidor...")
-    # Inicia o cliente MQTT
-    mqtt_client.start()
-    # Registra os handlers MQTT
-    register_handlers()
-    # Importa pontos de carregamento do CSV se necessário
-    db = next(get_db())
-    if db.query(PontoCarregamento).count() == 0:
-        csv_path = os.path.join(os.path.dirname(__file__), "pontos_carregamento.csv")
-        with open(csv_path, newline='', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            pontos = []
-            for row in reader:
-                ponto = PontoCarregamento(
-                    nome=row["nome"],
-                    localizacao=f"{row['latitude']},{row['longitude']}",
-                    potencia_maxima=22.0,  # valor fictício padrão
-                    tipo_conector="CCS",  # valor fictício padrão
-                    disponivel=(row["status"].lower() == "ativo"),
-                    em_manutencao=False,
-                    preco_kwh=2.5  # valor fictício padrão
-                )
-                pontos.append(ponto)
-            db.add_all(pontos)
-            db.commit()
-        logger.info(f"{len(pontos)} pontos de carregamento importados do CSV.")
-    else:
-        logger.info("Pontos de carregamento já existentes no banco de dados.")
-    logger.info("Servidor iniciado com sucesso!")
+    """Inicializa o cliente MQTT e registra os handlers"""
+    try:
+        logger.info("Iniciando o servidor...")
+        register_handlers()
+        await mqtt_client.start()
+        # Importa pontos de carregamento do CSV se necessário
+        db = next(get_db())
+        if db.query(PontoCarregamento).count() == 0:
+            csv_path = os.path.join(os.path.dirname(__file__), "pontos_carregamento.csv")
+            with open(csv_path, newline='', encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                pontos = []
+                for row in reader:
+                    ponto = PontoCarregamento(
+                        nome=row["nome"],
+                        localizacao=f"{row['latitude']},{row['longitude']}",
+                        potencia_maxima=22.0,  # valor fictício padrão
+                        tipo_conector="CCS",  # valor fictício padrão
+                        disponivel=(row["status"].lower() == "ativo"),
+                        em_manutencao=False,
+                        preco_kwh=2.5  # valor fictício padrão
+                    )
+                    pontos.append(ponto)
+                db.add_all(pontos)
+                db.commit()
+            logger.info(f"{len(pontos)} pontos de carregamento importados do CSV.")
+        else:
+            logger.info("Pontos de carregamento já existentes no banco de dados.")
+        logger.info("Servidor iniciado com sucesso!")
+    except Exception as e:
+        logger.error(f"Erro ao iniciar o servidor: {str(e)}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    logger.info("Encerrando o servidor...")
-    # Para o cliente MQTT
-    mqtt_client.stop()
-    logger.info("Servidor encerrado com sucesso!")
+    """Para o cliente MQTT ao encerrar o servidor"""
+    try:
+        logger.info("Encerrando o servidor...")
+        await mqtt_client.stop()
+        logger.info("Servidor encerrado com sucesso!")
+    except Exception as e:
+        logger.error(f"Erro ao encerrar o servidor: {str(e)}")
 
 # Rotas básicas
 @app.get("/")

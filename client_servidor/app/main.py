@@ -1,9 +1,7 @@
 from fastapi import FastAPI, Query
 import uuid
-import threading
-import time
+import asyncio
 import logging
-
 from app.services.mqtt_service import mqtt_service
 from app.core import config
 
@@ -15,43 +13,48 @@ last_response = {}
 logger = logging.getLogger(__name__)
 
 @app.on_event("startup")
-def startup_event():
-    mqtt_service.connect()
+async def startup_event():
+    await mqtt_service.connect()
     # Inscreve-se no tópico de resposta dos servidores
-    mqtt_service.subscribe(f"client/{config.MQTT_CLIENT_ID}/postos/response", on_postos_response)
+    await mqtt_service.subscribe(f"client/{config.MQTT_CLIENT_ID}/postos/response", on_postos_response)
 
-def on_postos_response(payload):
-    global last_response
-    logger.info(f"Recebida resposta dos postos: {payload}")
-    if "request_id" in payload and "postos" in payload:
-        last_response[payload["request_id"]] = payload["postos"]
+@app.on_event("shutdown")
+async def shutdown_event():
+    await mqtt_service.disconnect()
+
+async def on_postos_response(payload):
+    logger.info(f"[HANDLER] Recebido request_id: {payload.get('request_id')}")
+    logger.info(f"[HANDLER] Payload recebido: {payload}")
+    request_id = payload.get("request_id")
+    logger.info(f"[HANDLER] last_response.keys() antes: {list(last_response.keys())}")
+    if request_id in last_response:
+        last_response[request_id] = payload
+        logger.info(f"[HANDLER] Atualizado last_response para {request_id}")
     else:
-        logger.error(f"Payload inválido recebido: {payload}")
+        logger.warning(f"[HANDLER] request_id {request_id} não está em last_response")
+    logger.info(f"[HANDLER] last_response.keys() depois: {list(last_response.keys())}")
 
 @app.get("/postos")
-def get_postos(server_id: str = Query(..., description="ID do servidor desejado")):
-    # Gera um request_id único para correlacionar respostas
-    request_id = str(uuid.uuid4())
-    logger.info(f"Solicitando postos do servidor {server_id} com request_id {request_id}")
-    
-    # Publica solicitação para os servidores
-    mqtt_service.publish(
-        "server/postos/request",
-        {
+async def get_postos(server_id: str = Query(..., description="ID do servidor a ser consultado")):
+    try:
+        request_id = str(uuid.uuid4())
+        request_payload = {
             "request_id": request_id,
             "client_id": config.MQTT_CLIENT_ID,
             "server_id": server_id
         }
-    )
-    
-    # Aguarda resposta
-    timeout = 5
-    for _ in range(timeout * 10):
-        if request_id in last_response:
-            postos = last_response.pop(request_id)
-            logger.info(f"Retornando {len(postos)} postos para o cliente")
-            return {"postos": postos}
-        time.sleep(0.1)
-    
-    logger.error(f"Timeout aguardando resposta do servidor {server_id}")
-    return {"erro": "Sem resposta do servidor solicitado"} 
+        last_response[request_id] = None
+        await mqtt_service.publish("server/postos/request", request_payload)
+        logger.info(f"[POSTOS] Requisição enviada para o servidor {server_id} com request_id {request_id}")
+        logger.info(f"[POSTOS] last_response.keys() após envio: {list(last_response.keys())}")
+        for _ in range(100):  # 100 tentativas de 100ms = 10 segundos
+            if last_response[request_id] is not None:
+                response = last_response.pop(request_id)
+                logger.info(f"[POSTOS] Resposta recebida: {response}")
+                return response
+            await asyncio.sleep(0.1)
+        logger.warning(f"Timeout aguardando resposta do servidor {server_id} para request_id {request_id}")
+        return {"erro": "Sem resposta do servidor solicitado"}
+    except Exception as e:
+        logger.error(f"Erro ao consultar postos: {str(e)}")
+        return {"erro": f"Erro ao consultar postos: {str(e)}"} 

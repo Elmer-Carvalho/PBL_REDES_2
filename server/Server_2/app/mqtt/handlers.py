@@ -108,7 +108,7 @@ async def handle_reserva_status(payload: Dict[str, Any]):
     finally:
         db.close()
 
-def handle_postos_request(payload: Dict[str, Any]):
+async def handle_postos_request(payload: Dict[str, Any]):
     logger.info(f"Recebido payload em handle_postos_request: {payload}")
     if payload.get("server_id") != settings.SERVER_ID:
         logger.info(f"Ignorando requisição para outro servidor: {payload.get('server_id')}")
@@ -136,8 +136,8 @@ def handle_postos_request(payload: Dict[str, Any]):
         }
         logger.info(f"Publicando resposta no tópico: {response_topic}")
         logger.info(f"Payload da resposta: {response_payload}")
-        pub_result = mqtt_client.client.publish(response_topic, json.dumps(response_payload))
-        logger.info(f"Resultado do publish: {pub_result.is_published()}")
+        await mqtt_client.publish(response_topic, response_payload)
+        logger.info("Resposta publicada com sucesso")
     except Exception as e:
         logger.error(f"Erro ao processar requisição de postos: {str(e)}")
     finally:

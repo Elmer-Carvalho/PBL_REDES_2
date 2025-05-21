@@ -1,4 +1,4 @@
-import paho.mqtt.client as mqtt
+import gmqtt
 from ..config import get_settings
 import json
 import logging
@@ -11,58 +11,78 @@ logger = logging.getLogger(__name__)
 
 class MQTTClient:
     def __init__(self):
-        self.client = mqtt.Client(client_id=settings.MQTT_CLIENT_ID)
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
-        self.client.on_disconnect = self.on_disconnect
+        self.client = None
         self.handlers: Dict[str, Callable] = {}
         self.connected = False
+        self.client_id = settings.MQTT_CLIENT_ID
+        self.broker = settings.MQTT_BROKER
+        self.port = settings.MQTT_PORT
 
-    def on_connect(self, client, userdata, flags, rc):
+    async def on_connect(self, client, flags, rc, properties):
         if rc == 0:
             self.connected = True
             logger.info("Conectado ao broker MQTT")
             # Inscreve-se nos tópicos relevantes
-            self.client.subscribe([
+            topics = [
                 ("carros/+/status", 0),
                 ("carros/+/bateria", 0),
                 ("pontos/+/disponibilidade", 0),
                 ("reservas/+/status", 0),
                 ("server/postos/request", 0)
-            ])
-            logger.info("Inscrito no tópico: server/postos/request")
+            ]
+            for topic, qos in topics:
+                await self.client.subscribe(topic, qos)
+            logger.info("Inscrito em todos os tópicos necessários")
         else:
             logger.error(f"Falha na conexão MQTT com código: {rc}")
 
-    def on_message(self, client, userdata, msg):
+    def on_connect(self, client, flags, rc, properties):
+        """Callback síncrono para o gmqtt"""
+        asyncio.create_task(self._on_connect(client, flags, rc, properties))
+
+    async def _on_connect(self, client, flags, rc, properties):
+        """Implementação assíncrona do on_connect"""
+        if rc == 0:
+            self.connected = True
+            logger.info("Conectado ao broker MQTT")
+            # Inscreve-se nos tópicos relevantes
+            topics = [
+                ("carros/+/status", 0),
+                ("carros/+/bateria", 0),
+                ("pontos/+/disponibilidade", 0),
+                ("reservas/+/status", 0),
+                ("server/postos/request", 0)
+            ]
+            for topic, qos in topics:
+                self.client.subscribe(topic, qos)
+            logger.info("Inscrito em todos os tópicos necessários")
+        else:
+            logger.error(f"Falha na conexão MQTT com código: {rc}")
+
+    async def on_message(self, client, topic, payload, qos, properties):
         try:
-            topic = msg.topic
             logger.info(f"Mensagem recebida no tópico: {topic}")
-            payload = json.loads(msg.payload.decode())
-            logger.info(f"Payload recebido: {payload}")
-            payload["timestamp"] = datetime.now().isoformat()
+            payload_str = payload.decode()
+            payload_data = json.loads(payload_str)
+            logger.info(f"Payload recebido: {payload_data}")
+            payload_data["timestamp"] = datetime.now().isoformat()
 
             handler = self.handlers.get(topic)
             if handler:
                 logger.info(f"Chamando handler para o tópico: {topic}")
-                try:
-                    loop = asyncio.get_event_loop()
-                except RuntimeError:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                asyncio.run_coroutine_threadsafe(handler(payload), loop)
+                await handler(payload_data)
             else:
                 logger.warning(f"Nenhum handler registrado para o tópico: {topic}")
 
         except json.JSONDecodeError:
-            logger.error(f"Erro ao decodificar mensagem JSON: {msg.payload}")
+            logger.error(f"Erro ao decodificar mensagem JSON: {payload}")
         except Exception as e:
             logger.error(f"Erro ao processar mensagem MQTT: {str(e)}")
 
-    def on_disconnect(self, client, userdata, rc):
+    async def on_disconnect(self, client, packet, exc=None):
         self.connected = False
-        if rc != 0:
-            logger.warning(f"Desconectado inesperadamente do broker MQTT. Código: {rc}")
+        if exc:
+            logger.warning(f"Desconectado inesperadamente do broker MQTT: {exc}")
         else:
             logger.info("Desconectado do broker MQTT")
 
@@ -71,7 +91,7 @@ class MQTTClient:
         self.handlers[topic] = handler
         logger.info(f"Handler registrado para o tópico: {topic}")
 
-    def publish(self, topic: str, payload: Dict[str, Any]):
+    async def publish(self, topic: str, payload: Dict[str, Any]):
         """Publica uma mensagem em um tópico"""
         try:
             if not self.connected:
@@ -79,25 +99,29 @@ class MQTTClient:
                 return
                 
             message = json.dumps(payload)
-            self.client.publish(topic, message)
+            self.client.publish(topic, message.encode(), qos=1)
             logger.debug(f"Mensagem publicada no tópico {topic}: {message}")
         except Exception as e:
             logger.error(f"Erro ao publicar mensagem MQTT: {str(e)}")
 
-    def start(self):
+    async def start(self):
         """Inicia o cliente MQTT"""
         try:
-            self.client.connect(settings.MQTT_BROKER, settings.MQTT_PORT)
-            self.client.loop_start()
+            self.client = gmqtt.Client(self.client_id)
+            self.client.on_connect = self.on_connect
+            self.client.on_message = self.on_message
+            self.client.on_disconnect = self.on_disconnect
+            
+            await self.client.connect(self.broker, self.port)
             logger.info("Cliente MQTT iniciado")
         except Exception as e:
             logger.error(f"Erro ao iniciar cliente MQTT: {str(e)}")
 
-    def stop(self):
+    async def stop(self):
         """Para o cliente MQTT"""
         try:
-            self.client.loop_stop()
-            self.client.disconnect()
+            if self.client:
+                await self.client.disconnect()
             logger.info("Cliente MQTT parado")
         except Exception as e:
             logger.error(f"Erro ao parar cliente MQTT: {str(e)}")
