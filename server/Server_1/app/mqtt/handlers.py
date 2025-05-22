@@ -1,15 +1,17 @@
-import logging
+import structlog
 from typing import Dict, Any
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import and_
+from datetime import datetime, timedelta
 from ..database import SessionLocal
 from ..models.carro import Carro
 from ..models.ponto_carregamento import PontoCarregamento, CarregamentoAtivo
-from datetime import datetime
 from .client import mqtt_client
 from ..config import get_settings
 import json
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 settings = get_settings()
 
 async def handle_carro_status(payload: Dict[str, Any]):
@@ -23,12 +25,12 @@ async def handle_carro_status(payload: Dict[str, Any]):
             carro.em_carregamento = payload.get("em_carregamento", False)
             carro.ultima_atualizacao = datetime.now()
             db.commit()
-            logger.info(f"Status do carro {carro.placa} atualizado")
+            logger.info("carro_status_updated", placa=carro.placa)
         else:
-            logger.warning(f"Carro com placa {payload['placa']} não encontrado")
+            logger.warning("carro_not_found", placa=payload["placa"])
             
     except Exception as e:
-        logger.error(f"Erro ao processar status do carro: {str(e)}")
+        logger.error("carro_status_error", error=str(e), placa=payload.get("placa"))
     finally:
         db.close()
 
@@ -45,7 +47,7 @@ async def handle_carro_bateria(payload: Dict[str, Any]):
             db.commit()
             
             # Notifica outros servidores sobre a atualização
-            mqtt_client.publish(
+            await mqtt_client.publish(
                 f"carros/{carro.placa}/status",
                 {
                     "placa": carro.placa,
@@ -54,12 +56,12 @@ async def handle_carro_bateria(payload: Dict[str, Any]):
                     "timestamp": datetime.now().isoformat()
                 }
             )
-            logger.info(f"Nível de bateria do carro {carro.placa} atualizado")
+            logger.info("bateria_updated", placa=carro.placa)
         else:
-            logger.warning(f"Carro com placa {payload['placa']} não encontrado")
+            logger.warning("carro_not_found", placa=payload["placa"])
             
     except Exception as e:
-        logger.error(f"Erro ao processar atualização de bateria: {str(e)}")
+        logger.error("bateria_update_error", error=str(e), placa=payload.get("placa"))
     finally:
         db.close()
 
@@ -77,7 +79,7 @@ async def handle_ponto_disponibilidade(payload: Dict[str, Any]):
             db.commit()
             
             # Notifica outros servidores sobre a atualização
-            mqtt_client.publish(
+            await mqtt_client.publish(
                 f"pontos/{ponto.id}/status",
                 {
                     "ponto_id": ponto.id,
@@ -86,12 +88,12 @@ async def handle_ponto_disponibilidade(payload: Dict[str, Any]):
                     "timestamp": datetime.now().isoformat()
                 }
             )
-            logger.info(f"Disponibilidade do ponto {ponto.id} atualizada")
+            logger.info("ponto_disponibilidade_updated", ponto_id=ponto.id)
         else:
-            logger.warning(f"Ponto de carregamento {payload['ponto_id']} não encontrado")
+            logger.warning("ponto_not_found", ponto_id=payload["ponto_id"])
             
     except Exception as e:
-        logger.error(f"Erro ao processar disponibilidade do ponto: {str(e)}")
+        logger.error("ponto_disponibilidade_error", error=str(e), ponto_id=payload.get("ponto_id"))
     finally:
         db.close()
 
@@ -101,17 +103,17 @@ async def handle_reserva_status(payload: Dict[str, Any]):
         db = SessionLocal()
         # Aqui você implementaria a lógica para atualizar o status da reserva
         # e notificar outros servidores envolvidos
-        logger.info(f"Status da reserva {payload['reserva_id']} atualizado")
+        logger.info("reserva_status_updated", reserva_id=payload["reserva_id"])
             
     except Exception as e:
-        logger.error(f"Erro ao processar status da reserva: {str(e)}")
+        logger.error("reserva_status_error", error=str(e), reserva_id=payload.get("reserva_id"))
     finally:
         db.close()
 
 async def handle_postos_request(payload: Dict[str, Any]):
-    logger.info(f"Recebido payload em handle_postos_request: {payload}")
+    logger.info("postos_request_received", payload=payload)
     if payload.get("server_id") != settings.SERVER_ID:
-        logger.info(f"Ignorando requisição para outro servidor: {payload.get('server_id')}")
+        logger.info("ignoring_other_server_request", server_id=payload.get("server_id"))
         return
 
     db = SessionLocal()
@@ -134,12 +136,122 @@ async def handle_postos_request(payload: Dict[str, Any]):
             "request_id": payload["request_id"],
             "postos": postos_list
         }
-        logger.info(f"Publicando resposta no tópico: {response_topic}")
-        logger.info(f"Payload da resposta: {response_payload}")
+        logger.info("publishing_response", topic=response_topic)
         await mqtt_client.publish(response_topic, response_payload)
-        logger.info("Resposta publicada com sucesso")
+        logger.info("response_published")
     except Exception as e:
-        logger.error(f"Erro ao processar requisição de postos: {str(e)}")
+        logger.error("postos_request_error", error=str(e))
+    finally:
+        db.close()
+
+async def handle_reserva_posto(payload: Dict[str, Any]):
+    """Handler para processar reservas de postos de carregamento"""
+    if payload.get("server_id") != settings.SERVER_ID:
+        logger.info("ignoring_other_server_request", server_id=payload.get("server_id"), this_server=settings.SERVER_ID)
+        return
+    logger.info(f"Reserva recebida no server {settings.SERVER_ID}: {json.dumps(payload, indent=2)}")
+    db = SessionLocal()
+    try:
+        carro_data = payload["carro"]
+        placa = carro_data["placa"]
+        posto_id = payload["posto_id"]
+        request_id = payload["request_id"]
+        client_id = payload["client_id"]
+
+        # 1. Verifica se o carro já existe
+        carro = db.query(Carro).filter(Carro.placa == placa).first()
+        if not carro:
+            logger.info("creating_new_car", placa=placa)
+            carro = Carro(
+                placa=placa,
+                modelo=carro_data["modelo"],
+                capacidade_bateria=carro_data["capacidade_bateria"],
+                nivel_bateria_atual=carro_data["nivel_bateria_atual"],
+                taxa_descarga=carro_data["taxa_descarga"],
+                em_carregamento=False,
+                ultima_atualizacao=datetime.now()
+            )
+            db.add(carro)
+            db.commit()
+            db.refresh(carro)
+            logger.info("car_created", car_id=carro.id)
+
+        # 2. Verifica se o posto existe
+        posto = db.query(PontoCarregamento).filter(PontoCarregamento.id == posto_id).first()
+        if not posto:
+            logger.warning("posto_not_found", posto_id=posto_id)
+            response = {
+                "request_id": request_id,
+                "status": "erro",
+                "mensagem": f"O posto {posto_id} não existe no servidor {settings.SERVER_ID}"
+            }
+            await mqtt_client.publish(f"client/{client_id}/postos/reserva/response", response)
+            return
+
+        # 3. Verifica se já existe uma reserva ativa
+        carregamento_existente = db.query(CarregamentoAtivo).filter(
+            and_(
+                CarregamentoAtivo.carro_id == carro.id,
+                CarregamentoAtivo.ponto_carregamento_id == posto.id,
+                CarregamentoAtivo.status == True
+            )
+        ).first()
+
+        if carregamento_existente:
+            logger.warning("posto_already_reserved", 
+                         posto_id=posto_id, 
+                         carro_id=carro.id)
+            response = {
+                "request_id": request_id,
+                "status": "erro",
+                "mensagem": f"O posto {posto.nome} já está reservado para este carro. Escolha outro posto."
+            }
+            await mqtt_client.publish(f"client/{client_id}/postos/reserva/response", response)
+            return
+
+        # 4. Cria nova reserva
+        logger.info("creating_new_reservation", 
+                   posto_id=posto_id, 
+                   carro_id=carro.id)
+        nova_reserva = CarregamentoAtivo(
+            carro_id=carro.id,
+            ponto_carregamento_id=posto.id,
+            inicio_carregamento=datetime.now(),
+            fim_carregamento=datetime.now() + timedelta(days=1),
+            energia_fornecida=0.0,  # Começa com 0 pois ainda não houve carregamento
+            status=True  # True indica que está ativo
+        )
+        db.add(nova_reserva)
+        db.commit()
+        logger.info("reservation_created", 
+                   reserva_id=nova_reserva.id)
+
+        response = {
+            "request_id": request_id,
+            "status": "sucesso",
+            "mensagem": f"O posto {posto.nome} localizado no servidor {settings.SERVER_ID} foi reservado para o carro de placa {placa}."
+        }
+        await mqtt_client.publish(f"client/{client_id}/postos/reserva/response", response)
+        logger.info("reservation_response_sent", 
+                   client_id=client_id, 
+                   request_id=request_id)
+
+    except IntegrityError as e:
+        db.rollback()
+        logger.error("reservation_integrity_error", error=str(e), exc_info=True)
+        await mqtt_client.publish(f"client/{client_id}/postos/reserva/response", {
+            "request_id": request_id,
+            "status": "erro",
+            "mensagem": "Erro de integridade ao processar a reserva. Tente novamente."
+        })
+    except Exception as e:
+        db.rollback()
+        logger.error(f"[ERRO GERAL - handle_reserva_posto] {str(e)}", exc_info=True)
+        await mqtt_client.publish(f"client/{client_id}/postos/reserva/response", {
+            "request_id": request_id if 'request_id' in locals() else None,
+            "status": "erro",
+            "mensagem": f"Erro interno: {str(e)}"
+        })
     finally:
         db.close()
 
@@ -150,4 +262,5 @@ def register_handlers():
     mqtt_client.register_handler("pontos/+/disponibilidade", handle_ponto_disponibilidade)
     mqtt_client.register_handler("reservas/+/status", handle_reserva_status)
     mqtt_client.register_handler("server/postos/request", handle_postos_request)
-    logger.info("Handlers MQTT registrados") 
+    mqtt_client.register_handler("server/postos/reserva", handle_reserva_posto)
+    logger.info("handlers_registered") 
